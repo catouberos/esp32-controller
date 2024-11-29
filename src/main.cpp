@@ -1,10 +1,11 @@
 #include <Arduino.h>
-#include "configuration.hpp"
-#include "wifi.hpp"
-#include "server.hpp"
 
-void setup()
-{
+#include "configuration.hpp"
+#include "server.hpp"
+#include "wifi.hpp"
+
+void setup() {
+  Serial.begin(115200);
   Configuration config = Configuration::load();
 
   // init wifi AP
@@ -15,7 +16,6 @@ void setup()
   Serial.println("Server configured!");
 }
 
-void loop()
-{
+void loop() {
   // put your main code here, to run repeatedly:
 }

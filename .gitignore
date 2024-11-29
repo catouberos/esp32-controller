@@ -1,4 +1,6 @@
+compile_commands.json
 .pio
+.platformio/*
 .vscode/*
-
 data/*
+.cache/*

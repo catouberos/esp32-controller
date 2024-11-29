@@ -2,9 +2,14 @@
 
 AsyncWebServer server(80);
 
-void init_server()
-{
-    server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+void init_server() {
+  // start SPIFFS
+  if (!SPIFFS.begin()) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
 
-    server.begin();
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+
+  server.begin();
 }
