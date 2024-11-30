@@ -3,19 +3,20 @@
 AsyncWebServer server(80);
 AsyncWebSocket ws("/websocket");
 
-void init_server() {
+esp_err_t init_server() {
   ws.onEvent(ws_event);
   server.addHandler(&ws);
 
   // start SPIFFS
   if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
+    return ESP_FAIL;
   }
 
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
   server.begin();
+
+  return ESP_OK;
 }
 
 void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
