@@ -4,6 +4,9 @@
 #include "server.hpp"
 #include "wifi.hpp"
 
+const int RPWM = 23;
+const int LPWM = 22;
+
 void setup() {
   Serial.begin(115200);
   Configuration config = Configuration::load();
@@ -14,8 +17,14 @@ void setup() {
 
   init_server();
   Serial.println("Server configured!");
+
+  // Set motor connections as outputs
+  pinMode(RPWM, OUTPUT);
+  pinMode(LPWM, OUTPUT);
+
+  // Stop motors
+  analogWrite(RPWM, 0);
+  analogWrite(LPWM, 0);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-}
+void loop() { ws_cleanup(); }
