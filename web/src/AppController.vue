@@ -3,7 +3,7 @@ import { useWebSocket } from "@vueuse/core";
 import StatusBadge from "./components/StatusBadge.vue";
 import { Joystick, JoystickComponent } from "vue-joystick-component";
 
-const { status, data, send } = useWebSocket(
+const { status, send } = useWebSocket(
   `ws://${window.location.hostname}/websocket`,
   {
     autoReconnect: true,
