@@ -5,6 +5,7 @@
 
 #include "configuration.hpp"
 
-void init_wifi(Configuration config);
+esp_err_t init_wifi(Configuration config);
+void check_connection();
 
 #endif
