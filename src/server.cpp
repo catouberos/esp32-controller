@@ -7,13 +7,6 @@ esp_err_t init_server() {
   ws.onEvent(ws_event);
   server.addHandler(&ws);
 
-  // start SPIFFS
-  if (!SPIFFS.begin()) {
-    return ESP_FAIL;
-  }
-
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-
   server.begin();
 
   return ESP_OK;
