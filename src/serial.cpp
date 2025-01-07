@@ -1,6 +1,11 @@
 #include <Arduino.h>
 
 extern double kp, ki, kd;
+extern double speed_tl_ref, speed_tr_ref, speed_bl_ref, speed_br_ref;
+
+#define MANUAL_MODE 0
+#define CIRCLE_MODE 1
+int mode = 0;
 
 void serial_print_write() {
   if (Serial.available()) {
@@ -45,6 +50,20 @@ void serial_print_write() {
         Serial.print(ki);
         Serial.print(", Kd = ");
         Serial.println(kd);
+        break;
+
+      case 'c':
+        mode = 1;
+        Serial.println("Circle mode enabled. Ignoring WebSocket commands.");
+        break;
+
+      case 'x':
+        mode = 0;
+        speed_tr_ref = 0;
+        speed_tl_ref = 0;
+        speed_br_ref = 0;
+        speed_bl_ref = 0;
+        Serial.println("Circle mode disabled. Resuming WebSocket commands.");
         break;
 
       default:
