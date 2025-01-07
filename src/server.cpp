@@ -31,13 +31,15 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
           info->opcode == WS_TEXT) {
         data[len] = 0;
         float x, y, omega;
+        int mul, omega_mul;
 
         Serial.printf("Received: %s\n", data);
 
-        if (sscanf((char *)data, "%f,%f,%f", &x, &y, &omega) == 3) {
-          float v_x = abs(x) < 0.05 ? 0 : x * 10;
-          float v_y = abs(y) < 0.05 ? 0 : y * 10;
-          float omega_z = omega * -50;
+        if (sscanf((char *)data, "%f,%f,%f,%d,%d", &x, &y, &omega, &mul,
+                   &omega_mul) == 5) {
+          float v_x = abs(x) < 0.05 ? 0 : x * mul;
+          float v_y = abs(y) < 0.05 ? 0 : y * mul;
+          float omega_z = omega * -omega_mul;
           Serial.print("x = ");
           Serial.println(x, 8);
           Serial.print("y = ");
