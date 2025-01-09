@@ -3,9 +3,14 @@
 extern double kp, ki, kd;
 extern double speed_tl_ref, speed_tr_ref, speed_bl_ref, speed_br_ref;
 
+int mode = 0;
 #define MANUAL_MODE 0
 #define CIRCLE_MODE 1
-int mode = 0;
+#define FORWARD_MODE 2
+#define BACKWARD_MODE 3
+#define RIGHT_MODE 4
+#define LEFT_MODE 5
+#define DIAGONAL_MODE 6
 
 void serial_print_write() {
   if (Serial.available()) {
@@ -52,18 +57,43 @@ void serial_print_write() {
         Serial.println(kd);
         break;
 
-      case 'c':
-        mode = 1;
+      case '1':
+        mode = CIRCLE_MODE;
         Serial.println("Circle mode enabled. Ignoring WebSocket commands.");
         break;
 
+      case '2':
+        mode = FORWARD_MODE;
+        Serial.println("Forward mode enabled. Ignoring WebSocket commands.");
+        break;
+
+      case '3':
+        mode = BACKWARD_MODE;
+        Serial.println("Backward mode enabled. Ignoring WebSocket commands.");
+        break;
+
+      case '4':
+        mode = RIGHT_MODE;
+        Serial.println("Right mode enabled. Ignoring WebSocket commands.");
+        break;
+
+      case '5':
+        mode = LEFT_MODE;
+        Serial.println("Left mode enabled. Ignoring WebSocket commands.");
+        break;
+
+      case '6':
+        mode = DIAGONAL_MODE;
+        Serial.println("Diagonal mode enabled. Ignoring WebSocket commands.");
+        break;
+
       case 'x':
-        mode = 0;
+        mode = MANUAL_MODE;
         speed_tr_ref = 0;
         speed_tl_ref = 0;
         speed_br_ref = 0;
         speed_bl_ref = 0;
-        Serial.println("Circle mode disabled. Resuming WebSocket commands.");
+        Serial.println("Trajectory mode disable. Resuming WebSocket commands.");
         break;
 
       default:

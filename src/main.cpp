@@ -30,7 +30,7 @@ void setup() {
 void loop() {
   check_connection();
   ws_cleanup();
-  update_circle_motion();
+  update_motion();
   update_speeds();
   compute_pid();
   run_motors();

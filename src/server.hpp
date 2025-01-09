@@ -11,6 +11,6 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
               AwsEventType type, void *arg, uint8_t *data, size_t len);
 void ws_cleanup();
 
-void update_circle_motion();
+void update_motion();
 
 #endif
