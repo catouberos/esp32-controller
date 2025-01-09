@@ -1,7 +1,8 @@
 #include <Arduino.h>
 
+#include "pid.hpp"
+
 extern double kp, ki, kd;
-extern double speed_tl_ref, speed_tr_ref, speed_bl_ref, speed_br_ref;
 
 int mode = 0;
 #define MANUAL_MODE 0
@@ -102,5 +103,14 @@ void serial_print_write() {
     }
   }
 
-  delay(10);  // Small delay to avoid overloading the serial communication
+  // clang-format off
+  Serial.printf(
+      "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+      speed_tl, mot_tl_cmd, speed_tl_ref,
+      speed_tr, mot_tr_cmd, speed_tr_ref,
+      speed_bl, mot_bl_cmd, speed_bl_ref,
+      speed_br, mot_br_cmd, speed_br_ref);
+  // clang-format on
+
+  delay(100);  // Small delay to avoid overloading the serial communication
 }

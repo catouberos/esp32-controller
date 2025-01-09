@@ -1,3 +1,5 @@
+#include "pid.hpp"
+
 #include <Arduino.h>
 #include <PID_v1.h>
 
@@ -153,14 +155,14 @@ double mot_tl_cmd = 0, mot_tr_cmd = 0, mot_bl_cmd = 0, mot_br_cmd = 0;
 volatile long cnt_tl = 0, cnt_tr = 0, cnt_bl = 0, cnt_br = 0;
 
 double speed_tl = 0, speed_tr = 0, speed_bl = 0, speed_br = 0;
-extern double speed_tl_ref, speed_tr_ref, speed_bl_ref, speed_br_ref;
 
 long prev_cnt_tl = 0, prev_cnt_tr = 0, prev_cnt_bl = 0, prev_cnt_br = 0;
 unsigned long last_time_tl = 0, last_time_tr = 0, last_time_bl = 0,
               last_time_br = 0;
 
-double kp = 0.6, ki = 0, kd = 0;
+double kp = 0.1, ki = 10, kd = 0;
 
+// input, output, ref
 PID MOT_TL_PID(&speed_tl, &mot_tl_cmd, &speed_tl_ref, kp, ki, kd, DIRECT);
 PID MOT_TR_PID(&speed_tr, &mot_tr_cmd, &speed_tr_ref, kp, ki, kd, DIRECT);
 PID MOT_BL_PID(&speed_bl, &mot_bl_cmd, &speed_bl_ref, kp, ki, kd, DIRECT);
