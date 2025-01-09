@@ -2,6 +2,14 @@
 
 #include "pid.hpp"
 
+#define MANUAL_MODE 0
+#define CIRCLE_MODE 1
+#define FORWARD_MODE 2
+#define BACKWARD_MODE 3
+#define RIGHT_MODE 4
+#define LEFT_MODE 5
+#define DIAGONAL_MODE 6
+
 double speed_tl_ref = 0, speed_tr_ref = 0, speed_bl_ref = 0, speed_br_ref = 0;
 extern int mode;
 AsyncWebServer server(80);
@@ -27,6 +35,10 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
                     client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
+      speed_tl_ref = 0;
+      speed_tr_ref = 0;
+      speed_bl_ref = 0;
+      speed_br_ref = 0;
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA: {
@@ -74,30 +86,98 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
     } break;
     case WS_EVT_PONG:
     case WS_EVT_ERROR:
+      speed_tl_ref = 0;
+      speed_tr_ref = 0;
+      speed_bl_ref = 0;
+      speed_br_ref = 0;
       break;
   }
 }
 
 void ws_cleanup() { ws.cleanupClients(); }
 
-void update_circle_motion() {
-  if (mode == 1) {
-    float v_x = 0.0;           // No sideways motion
-    float v_y = 0.5 * 30;      // Forward motion
-    float omega_z = 0.5 * 40;  // Rotation rate
+void update_motion() {
+  switch (mode) {
+    case CIRCLE_MODE:
+      float v_x = 0.0;           // No sideways motion
+      float v_y = 0.75 * 20;     // Forward motion
+      float omega_z = 0.5 * 40;  // Rotation rate
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+    case FORWARD_MODE:
+      v_x = 0.0;       // No sideways motion
+      v_y = 1.0 * 20;  // Forward motion
+      omega_z = 0.0;   // No rotation
 
-    Serial.print("tl = ");
-    Serial.println(speed_tl_ref, 8);
-    Serial.print("tr = ");
-    Serial.println(speed_tr_ref, 8);
-    Serial.print("bl = ");
-    Serial.println(speed_bl_ref, 8);
-    Serial.print("br = ");
-    Serial.println(speed_br_ref, 8);
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+
+    case BACKWARD_MODE:
+      v_x = 0.0;        // No sideways motion
+      v_y = -1.0 * 20;  // Backward motion
+      omega_z = 0.0;    // No rotation
+
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+
+    case RIGHT_MODE:
+      v_x = 1.0 * 20;  // Rightward motion
+      v_y = 0.0;       // No forward/backward motion
+      omega_z = 0.0;   // No rotation
+
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+
+    case LEFT_MODE:
+      v_x = -1.0 * 20;  // Leftward motion
+      v_y = 0.0;        // No forward/backward motion
+      omega_z = 0.0;    // No rotation
+
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+
+    case DIAGONAL_MODE:
+      v_x = 1.0 * 14.14;  // Diagonal motion (45 degrees)
+      v_y = 1.0 * 14.14;  // Forward motion
+      omega_z = 0.0;      // No rotation
+
+      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+      break;
+
+    default:
+      // Stop the robot if mode is invalid or not defined
+      speed_tl_ref = 0.0;
+      speed_tr_ref = 0.0;
+      speed_bl_ref = 0.0;
+      speed_br_ref = 0.0;
+      break;
   }
+
+  Serial.print("tl = ");
+  Serial.println(speed_tl_ref, 8);
+  Serial.print("tr = ");
+  Serial.println(speed_tr_ref, 8);
+  Serial.print("bl = ");
+  Serial.println(speed_bl_ref, 8);
+  Serial.print("br = ");
+  Serial.println(speed_br_ref, 8);
 }
