@@ -60,14 +60,6 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
           speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
           speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
 
-          // clang-format off
-          Serial.printf(
-              "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
-              speed_tl, mot_tl_cmd, speed_tl_ref,
-              speed_tr, mot_tr_cmd, speed_tr_ref,
-              speed_bl, mot_bl_cmd, speed_bl_ref,
-              speed_br, mot_br_cmd, speed_br_ref);
-          // clang-format on
         } else {
           Serial.println("Failed to parse data.");
         }
@@ -97,87 +89,68 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
 void ws_cleanup() { ws.cleanupClients(); }
 
 void update_motion() {
-  switch (mode) {
-    case CIRCLE_MODE:
-      float v_x = 0.0;           // No sideways motion
-      float v_y = 0.75 * 20;     // Forward motion
-      float omega_z = 0.5 * 40;  // Rotation rate
+  if (mode == CIRCLE_MODE) {
+    float v_x = 0.0;           // No sideways motion
+    float v_y = 0.75 * 20;     // Forward motion
+    float omega_z = 0.5 * 40;  // Rotation rate
 
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-    case FORWARD_MODE:
-      v_x = 0.0;       // No sideways motion
-      v_y = 1.0 * 20;  // Forward motion
-      omega_z = 0.0;   // No rotation
-
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-
-    case BACKWARD_MODE:
-      v_x = 0.0;        // No sideways motion
-      v_y = -1.0 * 20;  // Backward motion
-      omega_z = 0.0;    // No rotation
-
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-
-    case RIGHT_MODE:
-      v_x = 1.0 * 20;  // Rightward motion
-      v_y = 0.0;       // No forward/backward motion
-      omega_z = 0.0;   // No rotation
-
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-
-    case LEFT_MODE:
-      v_x = -1.0 * 20;  // Leftward motion
-      v_y = 0.0;        // No forward/backward motion
-      omega_z = 0.0;    // No rotation
-
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-
-    case DIAGONAL_MODE:
-      v_x = 1.0 * 14.14;  // Diagonal motion (45 degrees)
-      v_y = 1.0 * 14.14;  // Forward motion
-      omega_z = 0.0;      // No rotation
-
-      speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-      speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-      speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-      speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
-      break;
-
-    default:
-      // Stop the robot if mode is invalid or not defined
-      speed_tl_ref = 0.0;
-      speed_tr_ref = 0.0;
-      speed_bl_ref = 0.0;
-      speed_br_ref = 0.0;
-      break;
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
   }
 
-  Serial.print("tl = ");
-  Serial.println(speed_tl_ref, 8);
-  Serial.print("tr = ");
-  Serial.println(speed_tr_ref, 8);
-  Serial.print("bl = ");
-  Serial.println(speed_bl_ref, 8);
-  Serial.print("br = ");
-  Serial.println(speed_br_ref, 8);
+  if (mode == FORWARD_MODE) {
+    float v_x = 0.0;       // No sideways motion
+    float v_y = 1.0 * 20;  // Forward motion
+    float omega_z = 0.0;   // No rotation
+
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  }
+
+  if (mode == BACKWARD_MODE) {
+    float v_x = 0.0;        // No sideways motion
+    float v_y = -1.0 * 20;  // Backward motion
+    float omega_z = 0.0;    // No rotation
+
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  }
+  if (mode == RIGHT_MODE) {
+    float v_x = 1.0 * 20;  // Rightward motion
+    float v_y = 0.0;       // No forward/backward motion
+    float omega_z = 0.0;   // No rotation
+
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  }
+
+  if (mode == LEFT_MODE) {
+    float v_x = -1.0 * 20;  // Leftward motion
+    float v_y = 0.0;        // No forward/backward motion
+    float omega_z = 0.0;    // No rotation
+
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  }
+
+  if (mode == DIAGONAL_MODE) {
+    float v_x = 1.0 * 14.14;  // Diagonal motion (45 degrees)
+    float v_y = 1.0 * 14.14;  // Forward motion
+    float omega_z = 0.0;      // No rotation
+
+    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  }
 }

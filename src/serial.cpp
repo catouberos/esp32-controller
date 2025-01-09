@@ -112,5 +112,5 @@ void serial_print_write() {
       speed_br, mot_br_cmd, speed_br_ref);
   // clang-format on
 
-  delay(10);  // Small delay to avoid overloading the serial communication
+  delay(100);  // Small delay to avoid overloading the serial communication
 }
