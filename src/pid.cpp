@@ -43,7 +43,7 @@ long prev_cnt_tl = 0, prev_cnt_tr = 0, prev_cnt_bl = 0, prev_cnt_br = 0;
 unsigned long last_time_tl = 0, last_time_tr = 0, last_time_bl = 0,
               last_time_br = 0;
 
-double kp = 2.1, ki = 60, kd = 0;
+double kp = 0.1, ki = 10, kd = 0;
 
 // input, output, ref
 PID MOT_TL_PID(&speed_tl, &mot_tl_cmd, &speed_tl_ref, kp, ki, kd, DIRECT);
@@ -131,7 +131,7 @@ void update_speeds() {
   dt = (now - last_time_tl) / 1000.0;
   if (dt > 0) {
     long delta_tl = cnt_tl - prev_cnt_tl;
-    speed_tl = (delta_tl * 60.0) / (ENC_RES * dt);
+    speed_tl = delta_tl / dt;
     prev_cnt_tl = cnt_tl;
     last_time_tl = now;
   }
@@ -139,7 +139,7 @@ void update_speeds() {
   dt = (now - last_time_tr) / 1000.0;
   if (dt > 0) {
     long delta_tr = cnt_tr - prev_cnt_tr;
-    speed_tr = (delta_tr * 60.0) / (ENC_RES * dt);
+    speed_tr = delta_tr / dt;
     prev_cnt_tr = cnt_tr;
     last_time_tr = now;
   }
@@ -147,7 +147,7 @@ void update_speeds() {
   dt = (now - last_time_bl) / 1000.0;
   if (dt > 0) {
     long delta_bl = cnt_bl - prev_cnt_bl;
-    speed_bl = (delta_bl * 60.0) / (ENC_RES * dt);
+    speed_bl = delta_bl / dt;
     prev_cnt_bl = cnt_bl;
     last_time_bl = now;
   }
@@ -155,7 +155,7 @@ void update_speeds() {
   dt = (now - last_time_br) / 1000.0;
   if (dt > 0) {
     long delta_br = cnt_br - prev_cnt_br;
-    speed_br = (delta_br * 60.0) / (ENC_RES * dt);  // Convert to RPM
+    speed_br = delta_br / dt;  // Convert to RPM
     prev_cnt_br = cnt_br;
     last_time_br = now;
   }
