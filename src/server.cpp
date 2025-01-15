@@ -97,33 +97,52 @@ void update_motion() {
     return value;
   };
 
-  if (mode == CIRCLE_MODE) {
-    float desired_radius = 0.5;  // Desired radius of the circle (meters)
-    int encoder_counts = 330;    // Example encoder counts
+  if (mode == FORWARD_MODE) {
+    static unsigned long start_time = 0;
+    static bool is_moving = false;
 
-    // Calculate linear velocity (v_y) in RPM
-    float v_y_rpm = (encoder_counts / cpr) * (60 / sampling_interval);
+    // Robot parameters
+    float wheel_circumference = 2 * PI * r;  // Wheel circumference in meters
+    float distance_to_travel = 1.0;          // Distance to travel in meters
+    float revolutions_needed =
+        distance_to_travel / wheel_circumference;  // Revolutions required
+    float time_needed = (revolutions_needed / max_rpm) *
+                        60.0;  // Time in seconds to cover the distance
 
-    // Scale to max RPM if needed
-    v_y_rpm = clamp(v_y_rpm, -max_rpm, max_rpm);
+    // Start the movement
+    if (!is_moving) {
+      start_time = millis();
+      is_moving = true;
+    }
 
-    // Calculate angular velocity (omega_z) in RPM
-    float omega_z_rpm = v_y_rpm / desired_radius;
+    // Check if the time elapsed is within the required duration
+    if ((millis() - start_time) / 1000.0 < time_needed) {
+      float v_x_rpm = 0.0;            // No sideways motion
+      float v_y_rpm = 1.0 * max_rpm;  // Forward motion
+      float omega_z = 0.0;            // No rotation
 
-    // No sideways motion
-    float v_x_rpm = 0.0;
+      float speed_tl =
+          v_y_rpm + v_x_rpm - (lx + ly) * (omega_z * 60.0 / (2 * PI));
+      float speed_tr =
+          v_y_rpm - v_x_rpm + (lx + ly) * (omega_z * 60.0 / (2 * PI));
+      float speed_bl =
+          v_y_rpm - v_x_rpm - (lx + ly) * (omega_z * 60.0 / (2 * PI));
+      float speed_br =
+          v_y_rpm + v_x_rpm + (lx + ly) * (omega_z * 60.0 / (2 * PI));
 
-    // Wheel speed calculations in RPM
-    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
-    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
-    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
-    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
-
-    // Clamp speeds to maximum RPM
-    speed_tl_ref = clamp(speed_tl_ref, -max_rpm, max_rpm);
-    speed_tr_ref = clamp(speed_tr_ref, -max_rpm, max_rpm);
-    speed_bl_ref = clamp(speed_bl_ref, -max_rpm, max_rpm);
-    speed_br_ref = clamp(speed_br_ref, -max_rpm, max_rpm);
+      // Convert to encoder counts
+      speed_tl_ref = (speed_tl / 60.0) * cpr;
+      speed_tr_ref = (speed_tr / 60.0) * cpr;
+      speed_bl_ref = (speed_bl / 60.0) * cpr;
+      speed_br_ref = (speed_br / 60.0) * cpr;
+    } else {
+      // Stop the robot after traveling the desired distance
+      speed_tl_ref = 0;
+      speed_tr_ref = 0;
+      speed_bl_ref = 0;
+      speed_br_ref = 0;
+      is_moving = false;  // Reset movement state
+    }
   }
 
   if (mode == FORWARD_MODE) {
