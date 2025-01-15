@@ -1,10 +1,7 @@
 #include "server.hpp"
 
-<<<<<<< HEAD
-=======
 #include "pid.hpp"
 
-    >>>>>>> 009f89f
 #define MANUAL_MODE 0
 #define CIRCLE_MODE 1
 #define FORWARD_MODE 2
@@ -12,9 +9,11 @@
 #define RIGHT_MODE 4
 #define LEFT_MODE 5
 #define DIAGONAL_MODE 6
+#define CIRCULAR_FIXED_DIRECTION_MODE 7
+#define CIRCULAR_RADIAL_MODE 8
+#define SQUARE_MODE 9
 
-    double speed_tl_ref = 0,
-           speed_tr_ref = 0, speed_bl_ref = 0, speed_br_ref = 0;
+double speed_tl_ref = 0, speed_tr_ref = 0, speed_bl_ref = 0, speed_br_ref = 0;
 extern int mode;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/websocket");
@@ -68,12 +67,6 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
           Serial.println("Failed to parse data.");
         }
 
-        ws.printfAll(
-            "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",
-            mot_tl_cmd, mot_tr_cmd, mot_bl_cmd, mot_br_cmd, speed_tl, speed_tr,
-            speed_bl, speed_br, speed_tl_ref, speed_tr_ref, speed_bl_ref,
-            speed_br_ref);
-
         // if data === toggle
         // if (strcmp((char *)data, "x") == 0) {
         //   ws.textAll(String(x));
@@ -93,77 +86,258 @@ void ws_event(AsyncWebSocket *server, AsyncWebSocketClient *client,
 void ws_cleanup() { ws.cleanupClients(); }
 
 void update_motion() {
-  if (mode == CIRCLE_MODE) {
-    float v_x = 0.0;           // No sideways motion
-    float v_y = 0.75 * 20;     // Forward motion
-    float omega_z = 0.5 * 40;  // Rotation rate
+  float cpr = 330;                // Counts per revolution of the encoder
+  float wheel_radius = 0.0485;    // Radius of the wheel in meters
+  float sampling_interval = 0.1;  // Sampling interval in seconds
+  float max_rpm = 150.0;          // Maximum RPM for motors
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  auto clamp = [](float value, float min_value, float max_value) {
+    if (value > max_value) return max_value;
+    if (value < min_value) return min_value;
+    return value;
+  };
+
+  if (mode == CIRCLE_MODE) {
+    float desired_radius = 0.5;  // Desired radius of the circle (meters)
+    int encoder_counts = 330;    // Example encoder counts
+
+    // Calculate linear velocity (v_y) in RPM
+    float v_y_rpm = (encoder_counts / cpr) * (60 / sampling_interval);
+
+    // Scale to max RPM if needed
+    v_y_rpm = clamp(v_y_rpm, -max_rpm, max_rpm);
+
+    // Calculate angular velocity (omega_z) in RPM
+    float omega_z_rpm = v_y_rpm / desired_radius;
+
+    // No sideways motion
+    float v_x_rpm = 0.0;
+
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
+
+    // Clamp speeds to maximum RPM
+    speed_tl_ref = clamp(speed_tl_ref, -max_rpm, max_rpm);
+    speed_tr_ref = clamp(speed_tr_ref, -max_rpm, max_rpm);
+    speed_bl_ref = clamp(speed_bl_ref, -max_rpm, max_rpm);
+    speed_br_ref = clamp(speed_br_ref, -max_rpm, max_rpm);
   }
 
   if (mode == FORWARD_MODE) {
-    float v_x = 0.0;       // No sideways motion
-    float v_y = 1.0 * 20;  // Forward motion
-    float omega_z = 0.0;   // No rotation
+    float v_x_rpm = 0.0;      // No sideways motion
+    float v_y_rpm = max_rpm;  // Forward motion in RPM
+    float omega_z_rpm = 0.0;  // No rotation
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
   }
 
   if (mode == BACKWARD_MODE) {
-    float v_x = 0.0;        // No sideways motion
-    float v_y = -1.0 * 20;  // Backward motion
-    float omega_z = 0.0;    // No rotation
+    float v_x_rpm = 0.0;       // No sideways motion
+    float v_y_rpm = -max_rpm;  // Backward motion in RPM
+    float omega_z_rpm = 0.0;   // No rotation
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
   }
-  if (mode == RIGHT_MODE) {
-    float v_x = 1.0 * 20;  // Rightward motion
-    float v_y = 0.0;       // No forward/backward motion
-    float omega_z = 0.0;   // No rotation
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+  if (mode == RIGHT_MODE) {
+    float v_x_rpm = max_rpm;  // Rightward motion in RPM
+    float v_y_rpm = 0.0;      // No forward/backward motion
+    float omega_z_rpm = 0.0;  // No rotation
+
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
   }
 
   if (mode == LEFT_MODE) {
-    float v_x = -1.0 * 20;  // Leftward motion
-    float v_y = 0.0;        // No forward/backward motion
-    float omega_z = 0.0;    // No rotation
+    float v_x_rpm = -max_rpm;  // Leftward motion in RPM
+    float v_y_rpm = 0.0;       // No forward/backward motion
+    float omega_z_rpm = 0.0;   // No rotation
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
   }
 
   if (mode == DIAGONAL_MODE) {
-    float v_x = 1.0 * 14.14;  // Diagonal motion (45 degrees)
-    float v_y = 1.0 * 14.14;  // Forward motion
-    float omega_z = 0.0;      // No rotation
+    float v_x_rpm = max_rpm;  // Leftward motion in RPM
+    float v_y_rpm = max_rpm;  // No forward/backward motion
+    float omega_z_rpm = 0.0;  // No rotation
 
-    speed_tl_ref = (1 / r) * (v_y + v_x - (lx + ly) * omega_z);
-    speed_tr_ref = (1 / r) * (v_y - v_x + (lx + ly) * omega_z);
-    speed_bl_ref = (1 / r) * (v_y - v_x - (lx + ly) * omega_z);
-    speed_br_ref = (1 / r) * (v_y + v_x + (lx + ly) * omega_z);
+    // Wheel speed calculations in RPM
+    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
+    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
+    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
   }
 
-  Serial.print("tl = ");
-  Serial.println(speed_tl_ref, 8);
-  Serial.print("tr = ");
-  Serial.println(speed_tr_ref, 8);
-  Serial.print("bl = ");
-  Serial.println(speed_bl_ref, 8);
-  Serial.print("br = ");
-  Serial.println(speed_br_ref, 8);
+  if (mode == CIRCULAR_FIXED_DIRECTION_MODE) {
+    // Circular motion without turning
+    float desired_radius = 1.0;  // Radius of the circle (meters)
+    float angular_speed = 1.0;   // Angular velocity (rad/s)
+
+    // Linear velocity
+    float v_x = -desired_radius * angular_speed;  // X-direction velocity
+    float v_y = 0.0;                              // Y-direction velocity
+    float omega_z = angular_speed;                // Rotational velocity
+
+    // Calculate wheel speeds in RPM
+    speed_tl_ref = (1 / wheel_radius) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / wheel_radius) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / wheel_radius) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / wheel_radius) * (v_y + v_x + (lx + ly) * omega_z);
+
+    // Clamp speeds to max RPM
+    speed_tl_ref = clamp(speed_tl_ref, -max_rpm, max_rpm);
+    speed_tr_ref = clamp(speed_tr_ref, -max_rpm, max_rpm);
+    speed_bl_ref = clamp(speed_bl_ref, -max_rpm, max_rpm);
+    speed_br_ref = clamp(speed_br_ref, -max_rpm, max_rpm);
+  }
+
+  if (mode == CIRCULAR_RADIAL_MODE) {
+    // Circular motion pointing away from the center
+    float radius = 1.0;         // Radius of the circle (meters)
+    float angular_speed = 1.0;  // Angular velocity (rad/s)
+
+    // Linear velocity components
+    float v_x = radius * angular_speed * sin(millis() / 1000.0);
+    float v_y = radius * angular_speed * cos(millis() / 1000.0);
+    float omega_z = 0.0;  // No rotation (fixed direction)
+
+    // Calculate wheel speeds in RPM
+    speed_tl_ref = (1 / wheel_radius) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / wheel_radius) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / wheel_radius) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / wheel_radius) * (v_y + v_x + (lx + ly) * omega_z);
+
+    // Clamp speeds to max RPM
+    speed_tl_ref = clamp(speed_tl_ref, -max_rpm, max_rpm);
+    speed_tr_ref = clamp(speed_tr_ref, -max_rpm, max_rpm);
+    speed_bl_ref = clamp(speed_bl_ref, -max_rpm, max_rpm);
+    speed_br_ref = clamp(speed_br_ref, -max_rpm, max_rpm);
+  }
+
+  if (mode == SQUARE_MODE) {
+    // Square motion
+    static unsigned long last_time = 0;
+    unsigned long current_time = millis();
+    float delta_t =
+        (current_time - last_time) / 1000.0;  // Time step in seconds
+    last_time = current_time;
+
+    float linear_speed = max_rpm;  // Linear speed in RPM
+    float side_length = 2.0;       // Side length of the square (meters)
+    float time_per_side =
+        side_length / (linear_speed * wheel_radius * 2 * 3.14159 / 60.0);
+    static int side = 0;  // Current side (0 to 3)
+    static float elapsed_time = 0.0;
+
+    // Update elapsed time
+    elapsed_time += delta_t;
+
+    // Determine velocity components
+    float v_x = 0.0, v_y = 0.0;
+    if (side == 0) {
+      v_x = linear_speed;  // Move right
+      v_y = 0.0;
+    } else if (side == 1) {
+      v_x = 0.0;
+      v_y = linear_speed;  // Move up
+    } else if (side == 2) {
+      v_x = -linear_speed;  // Move left
+      v_y = 0.0;
+    } else if (side == 3) {
+      v_x = 0.0;
+      v_y = -linear_speed;  // Move down
+    }
+
+    // Check if time to switch side
+    if (elapsed_time >= time_per_side) {
+      side = (side + 1) % 4;  // Move to next side
+      elapsed_time = 0.0;
+    }
+
+    // No rotational velocity
+    float omega_z = 0.0;
+
+    // Calculate wheel speeds in RPM
+    speed_tl_ref = (1 / wheel_radius) * (v_y + v_x - (lx + ly) * omega_z);
+    speed_tr_ref = (1 / wheel_radius) * (v_y - v_x + (lx + ly) * omega_z);
+    speed_bl_ref = (1 / wheel_radius) * (v_y - v_x - (lx + ly) * omega_z);
+    speed_br_ref = (1 / wheel_radius) * (v_y + v_x + (lx + ly) * omega_z);
+
+    // Clamp speeds to max RPM
+    speed_tl_ref = clamp(speed_tl_ref, -max_rpm, max_rpm);
+    speed_tr_ref = clamp(speed_tr_ref, -max_rpm, max_rpm);
+    speed_bl_ref = clamp(speed_bl_ref, -max_rpm, max_rpm);
+    speed_br_ref = clamp(speed_br_ref, -max_rpm, max_rpm);
+  }
+
+  // Debugging output
+  Serial.print("tl_ref (RPM): ");
+  Serial.println(speed_tl_ref);
+  Serial.print("tr_ref (RPM): ");
+  Serial.println(speed_tr_ref);
+  Serial.print("bl_ref (RPM): ");
+  Serial.println(speed_bl_ref);
+  Serial.print("br_ref (RPM): ");
+  Serial.println(speed_br_ref);
+}
+
+float encoderToVelocityKmh(int encoderCounts, int cpr, float samplingInterval,
+                           float wheelRadius) {
+  // Calculate revolutions (counts divided by counts per revolution)
+  float revolutions = static_cast<float>(encoderCounts) / cpr;
+
+  // Calculate RPM (revolutions per minute)
+  float rpm = revolutions * (60.0 / samplingInterval);
+
+  // Convert RPM to angular velocity (rad/s)
+  float angularVelocity =
+      (rpm * 2.0 * 3.14159) / 60.0;  // Approximate π as 3.14159
+
+  // Calculate linear velocity (m/s)
+  float linearVelocityMps = angularVelocity * wheelRadius;
+
+  // Convert linear velocity to km/h
+  float velocityKmh = linearVelocityMps * 3.6;
+
+  return velocityKmh;
+}
+
+int velocityToEncoderCountsKmh(float velocityKmh, float wheelRadius, int cpr,
+                               float samplingInterval) {
+  // Convert velocity from km/h to m/s
+  float linearVelocityMps = velocityKmh / 3.6;
+
+  // Calculate angular velocity (rad/s)
+  float angularVelocity = linearVelocityMps / wheelRadius;
+
+  // Convert angular velocity to RPM (revolutions per minute)
+  float rpm =
+      (angularVelocity * 60.0) / (2.0 * 3.14159);  // Approximate π as 3.14159
+
+  // Calculate revolutions during the sampling interval
+  float revolutions = rpm * (samplingInterval / 60.0);
+
+  // Convert revolutions to encoder counts
+  int encoderCounts =
+      static_cast<int>(revolutions * cpr + 0.5);  // Round to nearest integer
+
+  return encoderCounts;
 }

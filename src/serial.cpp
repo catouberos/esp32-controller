@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "pid.hpp"
+#include "server.hpp"
 
 extern double kp, ki, kd;
 
@@ -12,6 +13,9 @@ int mode = 0;
 #define RIGHT_MODE 4
 #define LEFT_MODE 5
 #define DIAGONAL_MODE 6
+#define CIRCULAR_FIXED_DIRECTION_MODE 7
+#define CIRCULAR_RADIAL_MODE 8
+#define SQUARE_MODE 9
 
 void serial_print_write() {
   if (Serial.available()) {
@@ -29,12 +33,12 @@ void serial_print_write() {
         break;
 
       case 'i':  // Increase Ki
-        ki += 0.01;
+        ki += 1;
         Serial.println("Ki increased");
         break;
 
-      case 'I':                    // Decrease Ki
-        ki = max(0.0, ki - 0.01);  // Ensure Ki doesn't go below 0
+      case 'I':                 // Decrease Ki
+        ki = max(0.0, ki - 1);  // Ensure Ki doesn't go below 0
         Serial.println("Ki decreased");
         break;
 
@@ -88,6 +92,27 @@ void serial_print_write() {
         Serial.println("Diagonal mode enabled. Ignoring WebSocket commands.");
         break;
 
+      case '7':
+        mode = CIRCULAR_FIXED_DIRECTION_MODE;
+        Serial.println(
+            "Circular fixed direction mode enabled. Ignoring WebSocket "
+            "commands.");
+        break;
+
+      case '8':
+        mode = CIRCULAR_RADIAL_MODE;
+        Serial.println(
+            "Circular radial mode enabled. Ignoring WebSocket "
+            "commands.");
+        break;
+
+      case '9':
+        mode = SQUARE_MODE;
+        Serial.println(
+            "Square mode enabled. Ignoring WebSocket "
+            "commands.");
+        break;
+
       case 'x':
         mode = MANUAL_MODE;
         speed_tr_ref = 0;
@@ -111,6 +136,10 @@ void serial_print_write() {
       speed_bl, mot_bl_cmd, speed_bl_ref,
       speed_br, mot_br_cmd, speed_br_ref);
   // clang-format on
+  ws.printfAll("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+               speed_tl, mot_tl_cmd, speed_tl_ref, speed_tr, mot_tr_cmd,
+               speed_tr_ref, speed_bl, mot_bl_cmd, speed_bl_ref, speed_br,
+               mot_br_cmd, speed_br_ref);
 
-  delay(100);  // Small delay to avoid overloading the serial communication
+  delay(150);  // Small delay to avoid overloading the serial communication
 }
