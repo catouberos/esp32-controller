@@ -89,7 +89,7 @@ void update_motion() {
   float cpr = 330;                // Counts per revolution of the encoder
   float wheel_radius = 0.0485;    // Radius of the wheel in meters
   float sampling_interval = 0.1;  // Sampling interval in seconds
-  float max_rpm = 150.0;          // Maximum RPM for motors
+  float max_rpm = 50.0;           // Maximum RPM for motors
 
   auto clamp = [](float value, float min_value, float max_value) {
     if (value > max_value) return max_value;
@@ -127,15 +127,44 @@ void update_motion() {
   }
 
   if (mode == FORWARD_MODE) {
-    float v_x_rpm = 0.0;      // No sideways motion
-    float v_y_rpm = max_rpm;  // Forward motion in RPM
-    float omega_z_rpm = 0.0;  // No rotation
+    float wheel_circumference =
+        2 * PI * wheel_radius;       // Calculate the circumference of the wheel
+    float distance_to_travel = 1.0;  // Distance to travel in meters
 
-    // Wheel speed calculations in RPM
-    speed_tl_ref = v_y_rpm + v_x_rpm - (lx + ly) * omega_z_rpm;
-    speed_tr_ref = v_y_rpm - v_x_rpm + (lx + ly) * omega_z_rpm;
-    speed_bl_ref = v_y_rpm - v_x_rpm - (lx + ly) * omega_z_rpm;
-    speed_br_ref = v_y_rpm + v_x_rpm + (lx + ly) * omega_z_rpm;
+    // Calculate the required revolutions to travel 1 meter
+    float revolutions_needed = distance_to_travel / wheel_circumference;
+
+    // Calculate the time to achieve this distance at the target RPM
+    float time_needed =
+        (revolutions_needed / target_rpm) * 60.0;  // Time in seconds
+
+    float v_x_rpm = 0.0;               // No sideways motion
+    float v_y_rpm = 1.0 * target_rpm;  // Forward motion
+    float omega_z = 0.0;               // No rotation
+
+    float speed_tl =
+        v_y_rpm + v_x_rpm - (lx + ly) * (omega_z * 60.0 / (2 * PI));
+    float speed_tr =
+        v_y_rpm - v_x_rpm + (lx + ly) * (omega_z * 60.0 / (2 * PI));
+    float speed_bl =
+        v_y_rpm - v_x_rpm - (lx + ly) * (omega_z * 60.0 / (2 * PI));
+    float speed_br =
+        v_y_rpm + v_x_rpm + (lx + ly) * (omega_z * 60.0 / (2 * PI));
+
+    // Convert to encoder counts
+    speed_tl_ref = (speed_tl / 60.0) * cpr;
+    speed_tr_ref = (speed_tr / 60.0) * cpr;
+    speed_bl_ref = (speed_bl / 60.0) * cpr;
+    speed_br_ref = (speed_br / 60.0) * cpr;
+
+    // Move the robot forward for the calculated time
+    unsigned long start_time = millis();
+    while (millis() - start_time < time_needed * 1000) {
+      setMotorSpeeds(speed_tl_ref, speed_tr_ref, speed_bl_ref, speed_br_ref);
+    }
+
+    // Stop the robot after traveling 1 meter
+    setMotorSpeeds(0, 0, 0, 0);
   }
 
   if (mode == BACKWARD_MODE) {
