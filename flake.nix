@@ -23,6 +23,7 @@
 
     devShells = forEachSupportedSystem ({pkgs}: {
       default = pkgs.mkShell {
+        venvDir = ".venv";
         packages = with pkgs;
           [
             clang-tools
@@ -41,7 +42,17 @@
             node2nix
             nodejs
             nodePackages.pnpm
+
+            # python
+            python311.withPackages
+            python311Packages.matplotlib
+            python311Packages.pyserial
+            python311Packages.numpy
           ]
+          ++ (with pkgs.python311Packages; [
+            pip
+            venvShellHook
+          ])
           ++ pkgs.lib.optionals (system != "aarch64-darwin") [gdb];
 
         shellHook = ''
